@@ -1,4 +1,4 @@
-# Observatoire météorologique du Val-d'Oise
+# Météo · Val-d'Oise
 
 Version statique conçue pour GitHub Pages.
 

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Observatoire météo du Val-d’Oise",
+  title: "Météo · Val-d’Oise",
   description: "Météo en temps réel, prévisions et historiques climatiques des 183 communes du Val-d’Oise.",
   other: {
     "codex-preview": "development",

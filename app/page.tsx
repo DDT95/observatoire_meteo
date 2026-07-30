@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import WeatherMap from "./WeatherMap";
+import WeatherMap, { type MapMode } from "./WeatherMap";
 
 type Place = { nom: string; code: string; centre?: { coordinates: [number, number] } };
 type Weather = {
@@ -19,6 +19,14 @@ const fallbackPlaces: Place[] = [
   { nom: "Sarcelles", code: "95585", centre: { coordinates: [2.379, 48.997] } },
   { nom: "Roissy-en-France", code: "95527", centre: { coordinates: [2.517, 49.004] } },
   { nom: "Magny-en-Vexin", code: "95355", centre: { coordinates: [1.787, 49.156] } },
+];
+const departmentPlace: Place = { nom: "Val-d’Oise", code: "95", centre: { coordinates: [2.12, 49.08] } };
+const airModes: { id: MapMode; label: string; detail: string; color: string }[] = [
+  { id: "atmo", label: "Indice ATMO", detail: "Situation quotidienne par commune", color: "#7a1f5c" },
+  { id: "no2", label: "Dioxyde d’azote · NO₂", detail: "Sous-indice quotidien", color: "#a558a5" },
+  { id: "pm10", label: "Particules · PM10", detail: "Sous-indice quotidien", color: "#d97706" },
+  { id: "pm25", label: "Particules fines · PM2,5", detail: "Sous-indice quotidien", color: "#e1000f" },
+  { id: "o3", label: "Ozone · O₃", detail: "Sous-indice quotidien", color: "#009081" },
 ];
 
 const fallbackWeather: Weather = {
@@ -54,7 +62,7 @@ function Sparkline({ values, color = "#5b7cfa" }: { values: number[]; color?: st
 
 export default function Home() {
   const [places, setPlaces] = useState<Place[]>(fallbackPlaces);
-  const [selected, setSelected] = useState<Place>(fallbackPlaces[0]);
+  const [selected, setSelected] = useState<Place>(departmentPlace);
   const [weather, setWeather] = useState<Weather>(fallbackWeather);
   const [history, setHistory] = useState<History | null>(null);
   const [query, setQuery] = useState("");
@@ -63,7 +71,7 @@ export default function Home() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [climate, setClimate] = useState<Climate | null>(null);
   const [detailTab, setDetailTab] = useState<"today"|"forecast"|"climate">("today");
-  const [mapMode, setMapMode] = useState<"temperature"|"rain"|"wind">("temperature");
+  const [mapMode, setMapMode] = useState<MapMode>("temperature");
 
   useEffect(() => {
     fetch("https://geo.api.gouv.fr/departements/95/communes?fields=nom,code,centre&format=json")
@@ -143,8 +151,8 @@ export default function Home() {
         </div>
         <div className="titleblock">
           <div className="eyebrow">MÉTÉO · VAL-D’OISE</div>
-          <h1>Observatoire météorologique</h1>
-          <div className="subtitle">Temps réel · prévisions · pluviométrie · climat</div>
+          <h1>Météo</h1>
+          <div className="subtitle">Temps réel · prévisions · climat · qualité de l’air</div>
         </div>
         <div className="livebox">
           <span className="liveDot"/>
@@ -166,10 +174,10 @@ export default function Home() {
               {filtered.length > 0 && <div className="results">{filtered.map(p => <button key={p.code} onClick={() => { setSelected(p); setQuery(""); setDrawerOpen(true); }}>{p.nom}<small>{p.code}</small></button>)}</div>}
             </div>
             <div className="selectedCard">
-              <div><small>COMMUNE SÉLECTIONNÉE</small><b>{selected.nom}</b><span>Code INSEE {selected.code}</span></div>
+              <div><small>{selected.code === "95" ? "VUE DÉPARTEMENTALE" : "COMMUNE SÉLECTIONNÉE"}</small><b>{selected.nom}</b><span>{selected.code === "95" ? "183 communes" : `Code INSEE ${selected.code}`}</span></div>
               <strong>{loading ? "…" : `${fmt(c.temperature_2m,1)}°`}</strong>
             </div>
-            <div className="actions"><button className="primary" onClick={() => setSelected(fallbackPlaces[0])}>Recentrer</button><button onClick={() => setDrawerOpen(true)}>Voir la fiche</button></div>
+            <div className="actions"><button className="primary" onClick={() => setSelected(departmentPlace)}>Recentrer le Val-d’Oise</button><button disabled={selected.code === "95"} onClick={() => setDrawerOpen(true)}>Voir la fiche</button></div>
           </div>
 
           <div className="panelScroll">
@@ -181,6 +189,12 @@ export default function Home() {
                 <button className={`windTile ${mapMode==="wind"?"active":""}`} onClick={()=>setMapMode("wind")}><span>💨</span><div><small>Vent</small><b>{fmt(c.wind_speed_10m)} km/h</b></div><i>›</i></button>
               </div>
             </section>
+            <section className="airBoard">
+              <div className="sectionHead"><div><h2>Qualité de l’air · Airparif</h2><p>Indice ATMO et sous-indices quotidiens.</p></div><span>Quotidien</span></div>
+              <div className="airTiles">
+                {airModes.map(layer => <button key={layer.id} className={mapMode === layer.id ? "active" : ""} onClick={() => setMapMode(layer.id)}><i aria-hidden="true"/><div><b>{layer.label}</b><span>{layer.detail}</span></div><em style={{ background: layer.color }}/></button>)}
+              </div>
+            </section>
             <section className="quickFacts"><h2>Conditions à {selected.nom}</h2><div><span>💨 Rafales <b>{fmt(c.wind_gusts_10m)} km/h</b></span><span>◉ Pression <b>{fmt(c.pressure_msl)} hPa</b></span><span>☁️ Nuages <b>{fmt(c.cloud_cover)} %</b></span><span>🧭 Vent <b>{fmt(c.wind_direction_10m)}°</b></span></div></section>
           </div>
         </aside>
@@ -189,7 +203,7 @@ export default function Home() {
           <div className="mapCard">
             <WeatherMap mode={mapMode} selectedCode={selected.code} onSelect={p => { setSelected(p); setDetailTab("today"); setDrawerOpen(true); }}/>
             <div className="mapHelp"><b>Clique sur une commune</b><span>pour consulter sa fiche météorologique</span></div>
-            <div className={`legend ${mapMode}`}><b>{mapMode==="temperature"?"Température de l’air":mapMode==="rain"?"Précipitations en cours":"Vitesse du vent"}</b><div className="gradient"/><span>{mapMode==="temperature"?"15 à 35 °C":mapMode==="rain"?"0 à 5+ mm":"0 à 40+ km/h"} · les trois mesures restent dans les repères</span></div>
+            <div className={`legend ${mapMode}`}><b>{mapMode==="temperature"?"Température de l’air":mapMode==="rain"?"Précipitations en cours":mapMode==="wind"?"Vitesse du vent":airModes.find(layer => layer.id === mapMode)?.label}</b><div className="gradient"/><span>{mapMode==="temperature"?"15 à 35 °C":mapMode==="rain"?"0 à 5+ mm":mapMode==="wind"?"0 à 40+ km/h":"Bon · moyen · dégradé · mauvais · très mauvais"}</span></div>
           </div>
         </section>
       </div>
@@ -209,7 +223,7 @@ export default function Home() {
           {detailTab==="forecast" && <section className="forecastPlay compactForecast"><div className="forecastLead"><span>🗓️</span><div><h3>La semaine à venir</h3><p>Maximum · minimum · pluie · UV</p></div><strong>{fmt(rain7,1)} mm sur 7 j</strong></div><div className="forecastRows">{(daily.time??[]).map((t,i)=><article key={String(t)}><span className="forecastDay">{i===0?"Aujourd’hui":day(t,true)}</span><i>{Number(daily.weather_code[i])===0?"☀️":Number(daily.weather_code[i])<=2?"🌤️":Number(daily.weather_code[i])<=3?"☁️":Number(daily.weather_code[i])<=67?"🌧️":"⛈️"}</i><b>{fmt(daily.temperature_2m_max[i])}°</b><small>{fmt(daily.temperature_2m_min[i])}°</small><span className="rainValue">💧 {fmt(daily.precipitation_sum[i],1)} mm</span><span className="uvValue">UV {fmt(daily.uv_index_max[i],1)}</span></article>)}</div></section>}
           {detailTab==="climate" && <><section className="detailCard historyFun"><div className="forecastLead"><span>📈</span><div><h3>Les 30 derniers jours</h3><p>Le passé récent remet la journée en contexte.</p></div></div><div className="historyMetrics"><div><b>{fmt(rain30,1)} mm</b><span>Pluie cumulée</span></div><div><b>{fmt(max30,1)} °C</b><span>Pic de chaleur</span></div></div><Sparkline values={(history?.daily.temperature_2m_max as number[]) ?? []} color="#e76b3c"/></section>
           <section className="observatoryCard">
-            <div className="observatoryHead"><small>OBSERVATOIRE CLIMATIQUE</small><h3>45 ans de recul</h3><p>Réanalyse climatique 1981–2025 au point de la commune.</p></div>
+            <div className="observatoryHead"><small>REPÈRES CLIMATIQUES</small><h3>45 ans de recul</h3><p>Réanalyse climatique 1981–2025 au point de la commune.</p></div>
             {climateStats ? <>
               <div className="bigStat"><b>{climateStats.trend>=0?"+":""}{fmt(climateStats.trend,1)} °C</b><span>écart entre les décennies 1981–1990 et 2016–2025</span></div>
               <Sparkline values={climateStats.annual.map(x=>x.mean)} color="#e1000f"/>
