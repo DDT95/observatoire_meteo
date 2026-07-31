@@ -14,8 +14,8 @@
     header{display:grid;grid-template-columns:92px 1fr auto;align-items:center;gap:20px;padding:10px 24px;background:#fff}
     header img{width:78px;height:68px;object-fit:contain}.eyebrow{font-size:11px;letter-spacing:.12em;font-weight:800;color:var(--blue)}
     h1{font-size:30px;margin:4px 0 2px;letter-spacing:-.035em}.subtitle{font-size:14px;color:var(--muted)}
-    .live{display:flex;align-items:center;gap:10px;padding:12px 18px;border:1px solid var(--line);border-radius:30px;font-size:12px}
-    .dot{width:12px;height:12px;border-radius:50%;background:#23894c;box-shadow:0 0 0 6px #e3f5e9}.live small{display:block;color:var(--muted);margin-top:3px}
+    .live{display:flex;align-items:center;gap:12px;padding:12px 18px;border:1px solid var(--line);border-radius:30px;font-size:12px}
+    .dot{width:11px;height:11px;border-radius:50%;background:#23894c;box-shadow:0 0 0 4px #e3f5e9}.live b{font-size:13px;font-weight:800;color:var(--deep)}.live small{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px}
     .stripe{background:linear-gradient(90deg,var(--blue),#29b6e6)}.vigilance{display:flex;align-items:center;gap:11px;padding:0 24px;background:#fff8db;border-bottom:1px solid #eadb90;color:#463b08;font-size:11px}.vigilance>span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#f6c944;font-size:14px}.vigilance b{font-size:11px}.vigilance small{color:#71651f}.vigilance a{margin-left:auto;padding:7px 11px;border-radius:9px;background:#fff;color:#000091;font-weight:800;text-decoration:none;border:1px solid #dfd28f}.workspace{display:grid;grid-template-columns:390px 1fr;gap:14px;padding:14px;min-height:0}
     .panel,.mapbox{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 12px 35px #24324a12}
     .panel{display:flex;flex-direction:column}.panelTop{padding:18px;border-bottom:1px solid var(--line)}
@@ -57,7 +57,7 @@
 </head>
 <body>
 <main class="app">
-  <header><img src="https://raw.githubusercontent.com/DDT95/transport95/main/prefet-val-doise-logo.png" alt="Préfet du Val-d'Oise"><div><div class="eyebrow">MÉTÉO · VAL-D’OISE</div><h1>Météo</h1><div class="subtitle">Temps réel · prévisions · climat · qualité de l’air</div></div><div class="live"><span class="dot"></span><div><b id="updated">Données en cours d’actualisation</b><small>Open-Meteo · Airparif · 183 communes</small></div></div></header>
+  <header><img src="prefet-val-doise-logo.png" alt="Préfet du Val-d'Oise"><div><div class="eyebrow">MÉTÉO · VAL-D’OISE</div><h1>Météo</h1><div class="subtitle">Temps réel · prévisions · climat · qualité de l’air</div></div><div class="live"><span class="dot"></span><div><b id="updated">Données en cours d’actualisation</b><small>Open-Meteo · Airparif · 183 communes</small></div></div></header>
   <div class="stripe"></div>
   <div class="vigilance"><span>⚠</span><div><b>Vigilance météorologique</b> · <small>Avant tout déplacement ou activité sensible, vérifiez la situation officielle en cours.</small></div><a href="https://vigilance.meteofrance.fr/fr/val-d-oise" target="_blank" rel="noopener">Voir la vigilance ↗</a></div>
   <div class="workspace">
