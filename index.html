@@ -60,6 +60,13 @@
     .forecastRows{display:grid;gap:5px}.forecastRows article{display:grid;grid-template-columns:96px 26px 38px 32px 1fr 60px;align-items:center;min-height:40px;padding:5px 9px;border:1px solid #e1e7f0;border-radius:11px;background:#fff;font-size:9px}.forecastRows .day{font-weight:800;text-transform:capitalize}.forecastRows i{font-style:normal;font-size:18px}.forecastRows b{font-size:15px}.forecastRows small{font-size:10px;color:#8b94a6}.forecastRows .uv{text-align:right;font-weight:800}
     .history{display:grid;grid-template-columns:1fr 1fr;gap:7px}.history div,.climateGrid div{padding:9px;border-radius:10px;background:#f1f4f8}.history b,.history span,.climateGrid b,.climateGrid span{display:block}.history span,.climateGrid span{font-size:8px;color:var(--muted)}
     .climate{margin-top:7px;padding:13px 15px;border-radius:14px;background:linear-gradient(145deg,#070047,#000091);color:#fff}.climate h3{font-size:18px;margin:3px 0}.climate p{font-size:9px;color:#c9d1ff}.big{font-size:29px;font-weight:800}.climateGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}.climateGrid div{background:#ffffff12}.climateGrid span{color:#c9d1ff}
+    .loader{flex:none;width:15px;height:15px;border:3px solid #ffffff33;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    .loader.dark{border:3px solid #d7deea;border-top-color:#000091}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .climateLoading{display:flex;align-items:center;gap:9px;font-size:9px;color:#c9d1ff;padding:6px 0}
+    .climateErrorBox p{margin:4px 0 8px}
+    .climateErrorBox button{padding:7px 11px;border:1px solid #ffffff40;border-radius:9px;background:#ffffff15;color:#fff;font-size:9px;font-weight:800;cursor:pointer}
+    .tile .loading{display:flex;align-items:center;gap:7px}
     .weather-pin{display:flex;align-items:center;gap:6px;width:125px;padding:6px 8px;border-radius:12px;background:#fff;box-shadow:0 5px 18px #0003}.weather-pin i{font-style:normal;font-size:22px}.weather-pin b,.weather-pin span,.weather-pin small{display:block;white-space:nowrap}.weather-pin b{font-size:15px}.weather-pin span{font-size:7px;font-weight:800}.weather-pin small{font-size:6px;color:#526078}.leaflet-div-icon{border:0;background:transparent}
 
     /* Vigilance card in drawer */
@@ -335,8 +342,11 @@ function pressureTileHTML(c){
 /* ---- Moyennes climatiques (comparaison au jour calendaire) ---- */
 function moyennesTileHTML(){
   if(!weather) return "";
-  if(!climate || climate.code!==selected.code){
-    return `<div class="tile moyTile"><b class="tileLabel">📊 Moyennes</b><span class="loading">Analyse des séries climatiques 1981–2025…</span></div>`;
+  if(climate?.code===selected.code&&climate.error){
+    return `<div class="tile moyTile"><b class="tileLabel">📊 Moyennes</b><p>Séries climatiques momentanément indisponibles.</p></div>`;
+  }
+  if(!climate || climate.code!==selected.code || !climate.data){
+    return `<div class="tile moyTile"><b class="tileLabel">📊 Moyennes</b><span class="loading"><span class="loader dark"></span>Analyse des séries climatiques 1981–2025…</span></div>`;
   }
   const d=climate.data.daily, key=new Date().toISOString().slice(5,10);
   const sameDay=d.time.map((t,i)=>({t,max:+d.temperature_2m_max[i]})).filter(x=>x.t.slice(5,10)===key&&Number.isFinite(x.max));
@@ -379,19 +389,30 @@ function render(){
   else if(tab==="forecast")renderForecast();
   else renderClimateTab();
 }
+function climateBoxHTML(){
+  if(climate?.code===selected.code&&climate.data) return `<small>REPÈRES CLIMATIQUES</small><h3>45 ans de recul</h3><p>Analyse en cours…</p>`;
+  if(climate?.code===selected.code&&climate.error) return `<div class="climateErrorBox"><small>REPÈRES CLIMATIQUES</small><h3>45 ans de recul</h3><p>Données climatiques momentanément indisponibles pour ${selected.nom}.</p><button id="retryClimate">Réessayer</button></div>`;
+  return `<small>REPÈRES CLIMATIQUES</small><h3>45 ans de recul</h3><div class="climateLoading"><span class="loader"></span>Chargement de plus de 16 000 journées pour ${selected.nom}…</div>`;
+}
 function renderClimateTab(){
   const rain=(history?.daily?.precipitation_sum||[]).reduce((a,b)=>a+(+b||0),0),max=Math.max(...(history?.daily?.temperature_2m_max||[weather.current.temperature_2m]));
-  $("#drawerBody").innerHTML=`<section class="card"><h3>Les 30 derniers jours</h3><div class="history"><div><b>${fmt(rain,1)} mm</b><span>Pluie cumulée</span></div><div><b>${fmt(max,1)} °C</b><span>Pic de chaleur</span></div></div></section><section class="climate" id="climateBox"><small>REPÈRES CLIMATIQUES</small><h3>45 ans de recul</h3><p>${climate&&climate.code===selected.code?"Analyse en cours…":`Chargement de plus de 16 000 journées pour ${selected.nom}…`}</p></section>`;
-  if(climate?.code===selected.code) showClimate(climate.data);
+  $("#drawerBody").innerHTML=`<section class="card"><h3>Les 30 derniers jours</h3><div class="history"><div><b>${fmt(rain,1)} mm</b><span>Pluie cumulée</span></div><div><b>${fmt(max,1)} °C</b><span>Pic de chaleur</span></div></div></section><section class="climate" id="climateBox">${climateBoxHTML()}</section>`;
+  if(climate?.code===selected.code&&climate.data) showClimate(climate.data);
+  if(climate?.code===selected.code&&climate.error){
+    const [lon,lat]=selected.centre.coordinates;
+    $("#retryClimate").onclick=()=>{climate=null;loadClimateEager(selected.code,lat,lon);renderClimateTab()};
+  }
 }
 async function loadClimateEager(code,lat,lon){
-  if(climate?.code===code||climate?.loadingCode===code) return;
+  if(climate?.code===code&&(climate.data||climate.error)) return;
+  if(climate?.loadingCode===code) return;
   climate={loadingCode:code};
+  if(selected?.code===code&&tab==="climate") renderClimateTab();
   try{
     const p=new URLSearchParams({latitude:lat,longitude:lon,timezone:"Europe/Paris",start_date:"1981-01-01",end_date:"2025-12-31",daily:"temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum"});
-    const data=await fetch("https://archive-api.open-meteo.com/v1/archive?"+p).then(r=>r.ok?r.json():Promise.reject());
+    const data=await fetch("https://archive-api.open-meteo.com/v1/archive?"+p,{signal:AbortSignal.timeout(30000)}).then(r=>r.ok?r.json():Promise.reject());
     climate={code,data};
-  }catch(e){ climate=null; }
+  }catch(e){ climate={code,error:true}; }
   if(selected&&selected.code===code&&(tab==="today"||tab==="climate")) render();
 }
 function showClimate(data){
